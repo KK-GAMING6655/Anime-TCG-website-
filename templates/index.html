@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIME TCG Hub</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="glow-bg glow-purple"></div>
+    <div class="glow-bg glow-amber"></div>
+
+    <div id="login-modal" class="modal active">
+        <div class="glass-card login-box">
+            <h2><i class="fa-solid fa-gamepad"></i> ANIME TCG LOGIN</h2>
+            <p>Use <code>/login</code> in Discord to retrieve your credentials.</p>
+            <input type="text" id="web-id-input" placeholder="10-Digit Web ID">
+            <input type="password" id="web-pass-input" placeholder="4-Digit Password">
+            <button onclick="handleLogin()" class="btn btn-primary"><i class="fa-solid fa-key"></i> Authenticate</button>
+        </div>
+    </div>
+
+    <header class="glass-header">
+        <div class="logo"><i class="fa-solid fa-cards"></i> ANIME TCG Portal</div>
+        <nav class="nav-links">
+            <button onclick="showPage('status')" class="nav-btn active"><i class="fa-solid fa-user"></i> Status</button>
+            <button onclick="showPage('cards')" class="nav-btn"><i class="fa-solid fa-images"></i> Cards</button>
+            <button onclick="showPage('gacha')" class="nav-btn"><i class="fa-solid fa-box-open"></i> Gacha</button>
+            <button onclick="showPage('market')" class="nav-btn"><i class="fa-solid fa-shop"></i> Market</button>
+        </nav>
+        
+        <div id="user-profile-header" class="user-profile hidden">
+            <a href="PLACEHOLDER_BOT_INVITE_LINK" target="_blank" class="btn-sm btn-discord"><i class="fa-brands fa-discord"></i> Invite Bot</a>
+            <a href="PLACEHOLDER_DISCORD_SERVER_LINK" target="_blank" class="btn-sm btn-server"><i class="fa-solid fa-users"></i> Join Server</a>
+            <span id="header-balance" class="coin-badge"><i class="fa-solid fa-coins"></i> 0</span>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="page-status" class="page-content active">
+            <div class="grid-2">
+                <div class="glass-card">
+                    <h3><i class="fa-solid fa-chart-pie"></i> Profile Stats</h3>
+                    <div class="stat-row"><span>Balance:</span> <strong id="stat-balance">0</strong></div>
+                    <div class="stat-row"><span>Wealth Rank:</span> <strong id="stat-rank">#--</strong></div>
+                    <div class="stat-row"><span>Total Cards Collected:</span> <strong id="stat-total-cards">0</strong></div>
+                    <hr>
+                    <h4><i class="fa-solid fa-layer-group"></i> Rarity Breakdown</h4>
+                    <div class="rarity-badges">
+                        <span class="badge common">Common: <b id="cnt-common">0</b></span>
+                        <span class="badge uncommon">Uncommon: <b id="cnt-uncommon">0</b></span>
+                        <span class="badge rare">Rare: <b id="cnt-rare">0</b></span>
+                        <span class="badge epic">Epic: <b id="cnt-epic">0</b></span>
+                        <span class="badge legendary">Legendary: <b id="cnt-legendary">0</b></span>
+                        <span class="badge s-legendary">S. Legendary: <b id="cnt-slegendary">0</b></span>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <h3><i class="fa-solid fa-crown"></i> Highest Valued Card</h3>
+                    <div id="highest-card-container" class="card-display">
+                        </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="page-gacha" class="page-content">
+            <div class="glass-card text-center">
+                <h2><i class="fa-solid fa-sparkles"></i> Card Summon Stage</h2>
+                <div class="gacha-controls">
+                    <button onclick="pullGacha(1)" class="btn btn-primary">Pull x1 (1,000 Coins)</button>
+                    <button onclick="pullGacha(10)" class="btn btn-amber">Bulk Pull x10 (10,000 Coins)</button>
+                </div>
+
+                <div id="gacha-stage" class="gacha-stage">
+                    <div id="card-reveal-box" class="card-flip-box">
+                        <div class="card-front" id="card-front-rarity">
+                            <h2 id="gacha-rarity-text">PULL A CARD</h2>
+                        </div>
+                        <div class="card-back" id="card-back-details">
+                            <img id="gacha-img" src="" alt="Card Image">
+                            <h3 id="gacha-card-name">---</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
