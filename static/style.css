@@ -157,3 +157,26 @@ body {
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
+
+/* CAROUSEL & CARDS */
+.carousel-body { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; }
+.carousel-btn { background: var(--bg-panel-hover); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; transition: 0.2s; }
+.carousel-btn:hover { background: var(--primary); }
+.card-focus-view { text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; }
+.card-focus-view img { max-width: 250px; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); border: 2px solid var(--border-color); margin-bottom: 15px; }
+
+/* RARITY GRID */
+.rarity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+.rarity-item { background: var(--bg-main); padding: 15px; border-radius: 8px; border-left: 4px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.rarity-item h4 { margin: 0; }
+.rarity-item .rate { font-weight: bold; color: var(--text-muted); }
+
+/* GACHA STAGE */
+.gacha-controls { display: flex; justify-content: center; gap: 15px; margin-bottom: 30px; }
+.gacha-stage { margin-top: 20px; padding: 30px; background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, rgba(0,0,0,0) 70%); border-radius: 12px; min-height: 400px; display: flex; align-items: center; justify-content: center; }
+.gacha-stage.hidden { display: none; }
+.summon-card-box { text-align: center; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.summon-card-box img { max-width: 240px; border-radius: 12px; margin: 15px 0; box-shadow: 0 0 30px rgba(168, 85, 247, 0.5); }
+@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.text-center { text-align: center; }
+                  
