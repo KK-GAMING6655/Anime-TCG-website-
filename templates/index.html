@@ -11,20 +11,17 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2>Login to TCG</h2>
-                <button class="close-btn" onclick="toggleLoginModal(false)"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <p class="modal-sub">Use <code>/login</code> in Discord to get your credentials.</p>
-            <div class="input-group">
-                <i class="fa-solid fa-id-badge"></i>
-                <input type="text" id="web-id-input" placeholder="10-Digit Web ID">
-            </div>
-            <div class="input-group">
-                <i class="fa-solid fa-lock"></i>
-                <input type="password" id="web-pass-input" placeholder="4-Digit Password">
-            </div>
+            <div class="modal-header"><h2>Login to TCG</h2></div>
+            <div class="input-group"><i class="fa-solid fa-id-badge"></i><input type="text" id="web-id-input" placeholder="10-Digit Web ID"></div>
+            <div class="input-group"><i class="fa-solid fa-lock"></i><input type="password" id="web-pass-input" placeholder="4-Digit Password"></div>
             <button onclick="handleLogin()" class="btn-primary full-width">Login</button>
+        </div>
+    </div>
+    
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header"><h2>🏆 Global Leaderboard</h2><button class="close-btn" onclick="toggleLeaderboard(false)"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="panel-body"><p class="text-muted">Top 50 Users (Coming soon via API)</p></div>
         </div>
     </div>
 
@@ -32,105 +29,94 @@
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand"><h1 class="gradient-text">ANIME TCG</h1></div>
             <div class="sidebar-profile hidden" id="sidebar-profile">
-                <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" class="profile-avatar">
-                <div class="profile-info">
-                    <h3 id="profile-name">User</h3>
-                    <p><span id="profile-balance">0</span> 🪙 / Rank: <span id="profile-rank">#--</span></p>
-                </div>
+                <img src="https://cdn.discordapp.com/embed/avatars/0.png" class="profile-avatar">
+                <div class="profile-info"><h3 id="profile-name">User</h3><p><span id="profile-balance">0</span> 🪙</p></div>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showPage('dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
                 <a href="#" class="nav-item" onclick="showPage('cards', this)"><i class="fa-solid fa-images"></i> My Cards</a>
-                <a href="#" class="nav-item" onclick="showPage('rarity', this)"><i class="fa-solid fa-layer-group"></i> Rarity Rates</a>
-                <a href="#" class="nav-item" onclick="showPage('gacha', this)"><i class="fa-solid fa-box-open"></i> Summon Gacha</a>
-                <a href="#" class="nav-item" onclick="showPage('market', this)"><i class="fa-solid fa-shop"></i> Market (WIP)</a>
+                <a href="#" class="nav-item" onclick="showPage('gacha', this)"><i class="fa-solid fa-box-open"></i> Gacha</a>
+                <a href="#" class="nav-item" onclick="showPage('market', this)"><i class="fa-solid fa-shop"></i> Market</a>
+                <a href="#" class="nav-item" onclick="showPage('gift', this)"><i class="fa-solid fa-gift"></i> Gift</a>
+                <a href="#" class="nav-item" onclick="showPage('burn', this)"><i class="fa-solid fa-fire"></i> Burn Cards</a>
             </nav>
         </aside>
 
         <main class="main-content">
             <header class="topbar">
-                <div class="topbar-left">
-                    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-                    <h2 class="page-title" id="current-page-title">Dashboard</h2>
-                </div>
-                <div class="topbar-right">
-                    <button id="login-btn" class="btn-primary" onclick="toggleLoginModal(true)"><i class="fa-solid fa-right-to-bracket"></i> LOGIN</button>
-                </div>
+                <div class="topbar-left"><h2 class="page-title" id="current-page-title">Dashboard</h2></div>
+                <div class="topbar-right"><button id="login-btn" class="btn-primary" onclick="toggleLoginModal(true)">LOGIN</button></div>
             </header>
 
             <section id="page-dashboard" class="page-view active">
-                <h1 class="welcome-text">Hi, <span id="welcome-name" class="gradient-text">Guest</span>!</h1>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h1 class="welcome-text">Hi, <span id="welcome-name" class="gradient-text">Guest</span>!</h1>
+                    <button class="btn-secondary" onclick="toggleLeaderboard(true)"><i class="fa-solid fa-trophy"></i> View Leaderboards</button>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon purple-glow"><i class="fa-solid fa-wallet"></i></div>
-                        <div class="stat-details"><p>Balance</p><h3 id="dash-balance">0</h3></div>
+                        <div class="stat-details"><p>Balance (Rank <span id="dash-bal-rank">#--</span>)</p><h3 id="dash-balance">0</h3></div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon purple-glow"><i class="fa-solid fa-trophy"></i></div>
-                        <div class="stat-details"><p>User Rank</p><h3 id="dash-rank">#--</h3></div>
+                        <div class="stat-icon purple-glow"><i class="fa-solid fa-medal"></i></div>
+                        <div class="stat-details"><p>User Collection Rank</p><h3 id="dash-rank">#--</h3></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon purple-glow"><i class="fa-solid fa-layer-group"></i></div>
                         <div class="stat-details"><p>Total Cards</p><h3 id="dash-total-cards">0</h3></div>
                     </div>
                 </div>
-                <div class="panel">
-                    <div class="panel-header"><h3><i class="fa-solid fa-fire"></i> Highest Valued Card</h3></div>
-                    <div class="panel-body" id="highest-card-container"><p class="text-muted">Login to view.</p></div>
-                </div>
-            </section>
 
-            <section id="page-cards" class="page-view">
-                <div class="panel">
-                    <div class="panel-header"><h3><i class="fa-solid fa-images"></i> Your Collection</h3></div>
-                    <div class="panel-body carousel-body">
-                        <button class="carousel-btn" onclick="changeCard(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-                        <div id="card-carousel-display" class="card-focus-view">
-                            <p class="text-muted">Login to view your cards.</p>
-                        </div>
-                        <button class="carousel-btn" onclick="changeCard(1)"><i class="fa-solid fa-chevron-right"></i></button>
-                    </div>
-                    <div class="text-center" style="padding: 10px;" id="card-counter">0 / 0</div>
-                </div>
-            </section>
-
-            <section id="page-rarity" class="page-view">
-                <div class="panel">
-                    <div class="panel-header"><h3><i class="fa-solid fa-percent"></i> Rarity Drop Rates</h3></div>
-                    <div class="panel-body">
-                        <div class="rarity-grid" id="rarity-container">
-                            <p class="text-muted">Login to load rarities.</p>
+                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 30px;">
+                    <div class="panel">
+                        <div class="panel-header"><h3><i class="fa-solid fa-chart-pie"></i> Rarity Breakdown</h3></div>
+                        <div class="panel-body rarity-badges">
+                            <span class="badge common">Common: <b id="cnt-common">0</b></span>
+                            <span class="badge uncommon">Uncommon: <b id="cnt-uncommon">0</b></span>
+                            <span class="badge rare">Rare: <b id="cnt-rare">0</b></span>
+                            <span class="badge epic">Epic: <b id="cnt-epic">0</b></span>
+                            <span class="badge legendary">Legendary: <b id="cnt-legendary">0</b></span>
+                            <span class="badge s-legendary">S. Legendary: <b id="cnt-slegendary">0</b></span>
                         </div>
                     </div>
-                </div>
-            </section>
-
-            <section id="page-gacha" class="page-view">
-                <div class="panel text-center">
-                    <div class="panel-header"><h3><i class="fa-solid fa-sparkles"></i> Summoning Altar</h3></div>
-                    <div class="panel-body">
-                        <div class="gacha-controls">
-                            <button onclick="pullGacha(1)" class="btn-primary">Pull x1 (1,000 Coins)</button>
-                            <button onclick="pullGacha(10)" class="btn-secondary">Bulk x10 (10,000 Coins)</button>
-                        </div>
-                        <div id="gacha-stage" class="gacha-stage hidden">
-                            <div class="summon-card-box" id="summon-result-box">
-                                <h3 id="summon-rarity" class="gradient-text">SUMMONING...</h3>
-                                <img id="summon-img" src="" alt="Card">
-                                <h4 id="summon-name">---</h4>
+                    <div class="panel">
+                        <div class="panel-header"><h3><i class="fa-solid fa-coins"></i> Economy Actions</h3></div>
+                        <div class="panel-body" style="display: flex; gap: 15px; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>Daily Reward:</strong> <span id="daily-time" class="text-muted">Ready!</span></div>
+                                <button class="btn-primary" id="btn-daily" onclick="doEconomy('daily')">Claim Daily</button>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div><strong>Beg Reward:</strong> <span id="beg-time" class="text-muted">Ready!</span></div>
+                                <button class="btn-primary" id="btn-beg" onclick="doEconomy('beg')">Beg</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
-            
-            <section id="page-market" class="page-view">
-                <div class="panel"><div class="panel-body"><h3 class="text-muted">Market UI building in next step...</h3></div></div>
+
+            <section id="page-gift" class="page-view">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fa-solid fa-gift"></i> Send a Gift</h3></div>
+                    <div class="panel-body">
+                        <input type="text" placeholder="Receiver Discord ID" class="input-group" style="width: 100%; margin-bottom: 10px;">
+                        <select class="input-group" style="width: 100%; margin-bottom: 10px;"><option>Gift Coins</option><option>Gift Card</option></select>
+                        <button class="btn-primary full-width"><i class="fa-solid fa-paper-plane"></i> Send Gift</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="page-burn" class="page-view">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fa-solid fa-fire"></i> Mass Burn (50% Value)</h3></div>
+                    <div class="panel-body"><p class="text-muted">Select cards from your inventory below to instantly burn them for coins.</p></div>
+                </div>
             </section>
         </main>
     </div>
-
     <script src="/static/app.js"></script>
 </body>
-                        </html>
-                                                                        
+    </html>
+                    
