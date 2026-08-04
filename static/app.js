@@ -55,6 +55,13 @@ async function handleLogin() {
 }
 
 function renderDashboard(user) {
+    // Set Username and Profile Picture
+    document.getElementById('profile-name').innerText = user.username;
+    document.getElementById('welcome-name').innerText = user.username;
+    if (document.getElementById('sidebar-pfp')) {
+        document.getElementById('sidebar-pfp').src = user.pfp;
+    }
+
     document.getElementById('profile-balance').innerText = user.balance.toLocaleString();
     document.getElementById('dash-balance').innerText = user.balance.toLocaleString();
     document.getElementById('dash-bal-rank').innerText = `#${user.balance_rank}`;
@@ -88,6 +95,8 @@ function renderDashboard(user) {
 
     startTimers(user.last_daily, user.last_beg);
 }
+
+
 
 async function openLeaderboard(type) {
     toggleLeaderboardModal(true);
