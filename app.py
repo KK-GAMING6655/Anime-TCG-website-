@@ -2,7 +2,7 @@ import os
 import random
 import datetime
 from flask import Flask, request, jsonify, render_template
-import libsql
+import libsql_experimental as libsql
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 
