@@ -20,6 +20,7 @@ def parse_time(time_str):
 def home():
     return render_template('index.html')
 
+
 # --- 1. LOGIN & DASHBOARD DATA ---
 @app.route('/api/login', methods=['POST'])
 def login_api():
@@ -27,12 +28,13 @@ def login_api():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT id, balance, last_beg, last_daily FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    # Updated query to fetch username and pfp
+    cursor.execute("SELECT id, balance, last_beg, last_daily, username, pfp FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
     user = cursor.fetchone()
     if not user: 
         return jsonify({"success": False, "error": "Invalid Web ID or Password!"}), 401
         
-    discord_id, balance, last_beg, last_daily = user
+    discord_id, balance, last_beg, last_daily, username, pfp = user
 
     # Balance / Wealth Rank
     cursor.execute("SELECT COUNT(*) + 1 FROM users WHERE balance > ?", (balance,))
@@ -77,6 +79,8 @@ def login_api():
         "success": True,
         "user": {
             "discord_id": discord_id,
+            "username": username or f"User {discord_id[-4:]}",
+            "pfp": pfp or "https://cdn.discordapp.com/embed/avatars/0.png",
             "balance": balance,
             "balance_rank": balance_rank,
             "user_rank": user_rank,
@@ -90,6 +94,7 @@ def login_api():
             } if highest else None
         }
     })
+    
 
 # --- 2. LEADERBOARDS ---
 @app.route('/api/leaderboard', methods=['POST'])
