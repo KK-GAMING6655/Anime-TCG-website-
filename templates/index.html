@@ -15,7 +15,7 @@
                 <h2>Login to TCG</h2>
                 <button class="close-btn" onclick="toggleLoginModal(false)"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <p class="modal-sub">Use <code>/login</code> in the Discord bot to get your credentials.</p>
+            <p class="modal-sub">Use <code>/login</code> in Discord to get your credentials.</p>
             <div class="input-group">
                 <i class="fa-solid fa-id-badge"></i>
                 <input type="text" id="web-id-input" placeholder="10-Digit Web ID">
@@ -30,30 +30,21 @@
 
     <div class="app-container">
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-brand">
-                <h1 class="gradient-text">ANIME TCG</h1>
-            </div>
-
+            <div class="sidebar-brand"><h1 class="gradient-text">ANIME TCG</h1></div>
             <div class="sidebar-profile hidden" id="sidebar-profile">
-                <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="User Avatar" class="profile-avatar" id="profile-avatar">
+                <img src="https://cdn.discordapp.com/embed/avatars/0.png" alt="Avatar" class="profile-avatar">
                 <div class="profile-info">
                     <h3 id="profile-name">User</h3>
-                    <p><span id="profile-balance">0</span> 🪙 / <span id="profile-rank">#--</span></p>
+                    <p><span id="profile-balance">0</span> 🪙 / Rank: <span id="profile-rank">#--</span></p>
                 </div>
             </div>
-
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" onclick="showPage('dashboard', this)"><i class="fa-solid fa-border-all"></i> Dashboard</a>
-                <a href="#" class="nav-item" onclick="showPage('cards', this)"><i class="fa-solid fa-images"></i> Cards</a>
-                <a href="#" class="nav-item" onclick="showPage('rarity', this)"><i class="fa-solid fa-layer-group"></i> Rarity</a>
-                <a href="#" class="nav-item" onclick="showPage('gacha', this)"><i class="fa-solid fa-box-open"></i> Gacha</a>
-                <a href="#" class="nav-item" onclick="showPage('market', this)"><i class="fa-solid fa-shop"></i> Market</a>
-                <a href="#" class="nav-item" onclick="showPage('gifting', this)"><i class="fa-solid fa-gift"></i> Gifting</a>
+                <a href="#" class="nav-item" onclick="showPage('cards', this)"><i class="fa-solid fa-images"></i> My Cards</a>
+                <a href="#" class="nav-item" onclick="showPage('rarity', this)"><i class="fa-solid fa-layer-group"></i> Rarity Rates</a>
+                <a href="#" class="nav-item" onclick="showPage('gacha', this)"><i class="fa-solid fa-box-open"></i> Summon Gacha</a>
+                <a href="#" class="nav-item" onclick="showPage('market', this)"><i class="fa-solid fa-shop"></i> Market (WIP)</a>
             </nav>
-
-            <div class="sidebar-footer">
-                <a href="#" class="btn-secondary"><i class="fa-brands fa-discord"></i> Join Discord</a>
-            </div>
         </aside>
 
         <main class="main-content">
@@ -69,51 +60,77 @@
 
             <section id="page-dashboard" class="page-view active">
                 <h1 class="welcome-text">Hi, <span id="welcome-name" class="gradient-text">Guest</span>!</h1>
-                
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon purple-glow"><i class="fa-solid fa-wallet"></i></div>
-                        <div class="stat-details">
-                            <p>Total Balance</p>
-                            <h3 id="dash-balance">0</h3>
-                        </div>
+                        <div class="stat-details"><p>Balance</p><h3 id="dash-balance">0</h3></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon purple-glow"><i class="fa-solid fa-trophy"></i></div>
-                        <div class="stat-details">
-                            <p>Global Rank</p>
-                            <h3 id="dash-rank">#--</h3>
-                        </div>
+                        <div class="stat-details"><p>User Rank</p><h3 id="dash-rank">#--</h3></div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon purple-glow"><i class="fa-solid fa-layer-group"></i></div>
-                        <div class="stat-details">
-                            <p>Total Cards</p>
-                            <h3 id="dash-total-cards">0</h3>
-                        </div>
+                        <div class="stat-details"><p>Total Cards</p><h3 id="dash-total-cards">0</h3></div>
                     </div>
                 </div>
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fa-solid fa-fire"></i> Highest Valued Card</h3></div>
+                    <div class="panel-body" id="highest-card-container"><p class="text-muted">Login to view.</p></div>
+                </div>
+            </section>
 
-                <div class="top-card-section panel">
-                    <div class="panel-header">
-                        <h3><i class="fa-solid fa-fire"></i> Highest Valued Card</h3>
+            <section id="page-cards" class="page-view">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fa-solid fa-images"></i> Your Collection</h3></div>
+                    <div class="panel-body carousel-body">
+                        <button class="carousel-btn" onclick="changeCard(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                        <div id="card-carousel-display" class="card-focus-view">
+                            <p class="text-muted">Login to view your cards.</p>
+                        </div>
+                        <button class="carousel-btn" onclick="changeCard(1)"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
-                    <div class="panel-body" id="highest-card-container">
-                        <p class="text-muted">Login to view your top card.</p>
+                    <div class="text-center" style="padding: 10px;" id="card-counter">0 / 0</div>
+                </div>
+            </section>
+
+            <section id="page-rarity" class="page-view">
+                <div class="panel">
+                    <div class="panel-header"><h3><i class="fa-solid fa-percent"></i> Rarity Drop Rates</h3></div>
+                    <div class="panel-body">
+                        <div class="rarity-grid" id="rarity-container">
+                            <p class="text-muted">Login to load rarities.</p>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section id="page-cards" class="page-view"><h2 class="panel">Your Cards Collection will appear here.</h2></section>
-            <section id="page-rarity" class="page-view"><h2 class="panel">Rarity Drop Rates will appear here.</h2></section>
-            <section id="page-gacha" class="page-view"><h2 class="panel">Gacha Summoning will appear here.</h2></section>
-            <section id="page-market" class="page-view"><h2 class="panel">Global Market will appear here.</h2></section>
-            <section id="page-gifting" class="page-view"><h2 class="panel">Gifting interface will appear here.</h2></section>
-
+            <section id="page-gacha" class="page-view">
+                <div class="panel text-center">
+                    <div class="panel-header"><h3><i class="fa-solid fa-sparkles"></i> Summoning Altar</h3></div>
+                    <div class="panel-body">
+                        <div class="gacha-controls">
+                            <button onclick="pullGacha(1)" class="btn-primary">Pull x1 (1,000 Coins)</button>
+                            <button onclick="pullGacha(10)" class="btn-secondary">Bulk x10 (10,000 Coins)</button>
+                        </div>
+                        <div id="gacha-stage" class="gacha-stage hidden">
+                            <div class="summon-card-box" id="summon-result-box">
+                                <h3 id="summon-rarity" class="gradient-text">SUMMONING...</h3>
+                                <img id="summon-img" src="" alt="Card">
+                                <h4 id="summon-name">---</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="page-market" class="page-view">
+                <div class="panel"><div class="panel-body"><h3 class="text-muted">Market UI building in next step...</h3></div></div>
+            </section>
         </main>
     </div>
 
     <script src="/static/app.js"></script>
 </body>
-                                                                                    </html>
-                                                                                    
+                        </html>
+                                                                        
