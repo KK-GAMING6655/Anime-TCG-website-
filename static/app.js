@@ -26,12 +26,11 @@ function showPage(pageId, element) {
 
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 
-    if (pageId === 'cards' || pageId === 'burn' || pageId === 'gift') {
+    if (pageId === 'cards' || pageId === 'burn' || pageId === 'gift' || pageId === 'market') {
         fetchUserCards();
     }
-    if (pageId === 'gift') {
-        fetchGiftUsersList();
-    }
+    if (pageId === 'gift') fetchGiftUsersList();
+    if (pageId === 'market') fetchMarket();
 }
 
 async function handleLogin() {
@@ -409,3 +408,141 @@ async function doEconomy(action) {
     } else alert(data.error);
         }
                             
+/* --- MARKET SYSTEM LOGIC --- */
+let globalMarketCards = [];
+
+function switchMarketTab(tab) {
+    document.getElementById('tab-global-market').classList[tab === 'global' ? 'add' : 'remove']('active');
+    document.getElementById('tab-my-market').classList[tab === 'mine' ? 'add' : 'remove']('active');
+    document.getElementById('market-global-view').classList[tab === 'global' ? 'remove' : 'add']('hidden');
+    document.getElementById('market-my-view').classList[tab === 'mine' ? 'remove' : 'add']('hidden');
+}
+
+async function fetchMarket() {
+    if (!currentSession.web_id) return;
+    const res = await fetch('/api/market', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentSession)
+    });
+    const data = await res.json();
+    if (data.success) {
+        globalMarketCards = data.global_market;
+        renderGlobalMarket(globalMarketCards);
+        renderMyMarket(data.my_market);
+        
+        // Populate Sell Dropdown
+        const select = document.getElementById('market-sell-select');
+        if (userCards.length === 0) {
+            select.innerHTML = '<option value="">No cards available to sell</option>';
+        } else {
+            select.innerHTML = '<option value="">-- Select Card to Sell --</option>' + 
+                userCards.map(c => `<option value="${c.id}">${c.name} (${c.rarity}) - x${c.quantity} Owned</option>`).join('');
+        }
+    }
+}
+
+function renderGlobalMarket(marketList) {
+    const grid = document.getElementById('global-market-grid');
+    if (marketList.length === 0) {
+        grid.innerHTML = '<p class="text-muted">No cards found matching your search.</p>';
+        return;
+    }
+    grid.innerHTML = marketList.map(item => `
+        <div class="market-card ${item.rarity.toLowerCase().replace(' ', '-')}">
+            <img src="${item.image}" alt="Card">
+            <h4 class="m-name">${item.name}</h4>
+            <p class="m-rarity text-primary">${item.rarity}</p>
+            <p class="m-seller"><i class="fa-solid fa-user"></i> ${item.seller_name}</p>
+            <div class="m-price-row">
+                <span class="m-price">${item.price.toLocaleString()} 🪙</span>
+                <button class="btn-primary btn-sm" onclick="buyCard(${item.listing_id}, ${item.price})">Buy</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderMyMarket(myList) {
+    const grid = document.getElementById('my-market-grid');
+    if (myList.length === 0) {
+        grid.innerHTML = '<p class="text-muted">You have no active listings.</p>';
+        return;
+    }
+    grid.innerHTML = myList.map(item => `
+        <div class="market-card ${item.rarity.toLowerCase().replace(' ', '-')}">
+            <img src="${item.image}" alt="Card">
+            <h4 class="m-name">${item.name}</h4>
+            <p class="m-rarity text-primary">${item.rarity}</p>
+            <div class="m-price-row" style="margin-top: 10px;">
+                <span class="m-price">${item.price.toLocaleString()} 🪙</span>
+                <button class="btn-danger btn-sm" onclick="removeListing(${item.listing_id})">Remove</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function filterMarket() {
+    const nameFilter = document.getElementById('market-filter-name').value.toLowerCase();
+    const rarityFilter = document.getElementById('market-filter-rarity').value;
+    const sellerFilter = document.getElementById('market-filter-seller').value.toLowerCase();
+    const minPrice = parseInt(document.getElementById('market-filter-min').value) || 0;
+    const maxPrice = parseInt(document.getElementById('market-filter-max').value) || Infinity;
+
+    const filtered = globalMarketCards.filter(c => {
+        const matchName = c.name.toLowerCase().includes(nameFilter);
+        const matchRarity = rarityFilter === "" || c.rarity === rarityFilter;
+        const matchSeller = c.seller_name.toLowerCase().includes(sellerFilter);
+        const matchPrice = c.price >= minPrice && c.price <= maxPrice;
+        return matchName && matchRarity && matchSeller && matchPrice;
+    });
+    
+    renderGlobalMarket(filtered);
+}
+
+async function listCardOnMarket() {
+    const card_id = document.getElementById('market-sell-select').value;
+    const price = document.getElementById('market-sell-price').value;
+    if (!card_id) return alert("Please select a card to sell!");
+    if (!price || price <= 0) return alert("Enter a valid price!");
+
+    const res = await fetch('/api/market/sell', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentSession, card_id, price })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert(data.message);
+        document.getElementById('market-sell-price').value = "";
+        fetchMarket(); // Refresh Market View
+        fetchUserCards(); // Refresh Inventory underlying data
+    } else alert(data.error);
+}
+
+async function buyCard(listing_id, price) {
+    if (!confirm(`Are you sure you want to buy this card for ${price.toLocaleString()} coins?`)) return;
+    
+    const res = await fetch('/api/market/buy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentSession, listing_id })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert(data.message);
+        handleLogin(); // Refresh user balance globally
+        fetchMarket(); // Refresh Market Grid
+    } else alert(data.error);
+}
+
+async function removeListing(listing_id) {
+    if (!confirm(`Remove this card from the market and return it to your inventory?`)) return;
+
+    const res = await fetch('/api/market/remove', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...currentSession, listing_id })
+    });
+    const data = await res.json();
+    if (data.success) {
+        alert(data.message);
+        fetchMarket(); 
+        fetchUserCards();
+    } else alert(data.error);
+}
