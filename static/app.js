@@ -2,6 +2,7 @@ let currentSession = { web_id: null, web_pass: null };
 let userCards = [];
 let globalMarketCards = [];
 let currentCardIndex = 0;
+let currentGiftType = 'coins';
 
 window.onload = () => {
     const savedId = localStorage.getItem('web_id');
@@ -26,8 +27,11 @@ function showPage(pageId, element) {
 
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 
-    if (pageId === 'cards' || pageId === 'burn' || pageId === 'market') {
+    if (pageId === 'cards' || pageId === 'burn' || pageId === 'gift' || pageId === 'market') {
         fetchUserCards();
+    }
+    if (pageId === 'gift') {
+        fetchGiftUsersList();
     }
     if (pageId === 'market') {
         fetchMarket();
@@ -50,12 +54,35 @@ async function handleLogin() {
         currentSession = { web_id, web_pass };
 
         toggleLoginModal(false);
-        document.getElementById('login-btn').style.display = 'none';
+        document.getElementById('login-btn').classList.add('hidden');
+        document.getElementById('logout-btn').classList.remove('hidden');
         document.getElementById('sidebar-profile').classList.remove('hidden');
 
         renderDashboard(data.user);
         fetchUserCards();
     } else alert(data.error);
+}
+
+function handleLogout() {
+    localStorage.removeItem('web_id');
+    localStorage.removeItem('web_pass');
+    currentSession = { web_id: null, web_pass: null };
+
+    document.getElementById('logout-btn').classList.add('hidden');
+    document.getElementById('login-btn').classList.remove('hidden');
+    document.getElementById('sidebar-profile').classList.add('hidden');
+
+    document.getElementById('profile-name').innerText = "User";
+    document.getElementById('welcome-name').innerText = "Guest";
+    document.getElementById('profile-balance').innerText = "0";
+    document.getElementById('dash-balance').innerText = "0";
+    document.getElementById('dash-bal-rank').innerText = "#--";
+    document.getElementById('dash-rank').innerText = "#--";
+    document.getElementById('dash-total-cards').innerText = "0";
+
+    document.getElementById('highest-card-container').innerHTML = '<p class="text-muted">Login to view your highest valued card.</p>';
+    userCards = [];
+    alert("Logged out successfully.");
 }
 
 function renderDashboard(user) {
@@ -112,7 +139,7 @@ async function openLeaderboard(type) {
     tbody.innerHTML = data.leaderboard.map((row, i) => `
         <tr>
             <td><strong>#${i + 1}</strong></td>
-            <td>User ${row.id.slice(-4)}</td>
+            <td>${row.username}</td>
             <td>${row.value.toLocaleString()}</td>
         </tr>
     `).join('');
@@ -129,7 +156,8 @@ async function fetchUserCards() {
         userCards = data.cards;
         renderCardSlider();
         renderBurnGrid();
-        populateSellDropdown();
+        populateGiftCardDropdown();
+        populateSellDropdown(); // Also populate the Market dropdown!
     }
 }
 
@@ -204,9 +232,29 @@ async function submitBurn() {
     }
 }
 
-async function pullGacha(count) {
+/* --- GACHA ANIMATION & FLEXIBLE COUNT --- */
+function updateGachaCost() {
+    const inp = document.getElementById('gacha-count-input');
+    let val = parseInt(inp.value) || 1;
+    if (val < 1) val = 1;
+    if (val > 20) val = 20;
+    inp.value = val;
+    document.getElementById('gacha-total-cost').innerText = (val * 1000).toLocaleString();
+}
+
+async function pullGacha() {
+    if (!currentSession.web_id) return alert("Please login first!");
+
+    const count = parseInt(document.getElementById('gacha-count-input').value) || 1;
     const stage = document.getElementById('gacha-stage');
+    const suspense = document.getElementById('gacha-suspense');
+    const featured = document.getElementById('gacha-featured-card');
+    const bulkResults = document.getElementById('gacha-bulk-results');
+
     stage.classList.remove('hidden');
+    suspense.classList.remove('hidden');
+    featured.classList.add('hidden');
+    bulkResults.classList.add('hidden');
 
     const res = await fetch('/api/gacha', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -214,14 +262,111 @@ async function pullGacha(count) {
     });
     const data = await res.json();
 
-    if (!data.success) return alert(data.error);
+    if (!data.success) {
+        stage.classList.add('hidden');
+        return alert(data.error);
+    }
 
-    const pull = data.pulls[0];
-    document.getElementById('summon-rarity').innerText = pull.rarity.toUpperCase();
-    document.getElementById('summon-img').src = pull.image;
-    document.getElementById('summon-name').innerText = pull.name;
+    const sortedPulls = [...data.pulls].sort((a, b) => b.value - a.value);
+    const topPull = sortedPulls[0];
 
-    handleLogin();
+    setTimeout(() => {
+        suspense.classList.add('hidden');
+        featured.classList.remove('hidden');
+
+        const cardBox = document.getElementById('summon-card-box');
+        cardBox.className = `summon-card-box ${topPull.rarity.toLowerCase().replace(' ', '-')}`;
+
+        document.getElementById('summon-rarity').innerText = topPull.rarity.toUpperCase();
+        document.getElementById('summon-img').src = topPull.image;
+        document.getElementById('summon-name').innerText = topPull.name;
+        document.getElementById('summon-val').innerText = `Value: ${topPull.value.toLocaleString()} 🪙`;
+
+        if (data.pulls.length > 1) {
+            bulkResults.classList.remove('hidden');
+            const grid = document.getElementById('bulk-cards-grid');
+            grid.innerHTML = data.pulls.map(c => `
+                <div class="bulk-card-item ${c.rarity.toLowerCase().replace(' ', '-')}">
+                    <img src="${c.image}" alt="Card">
+                    <h5>${c.name}</h5>
+                    <p class="rarity-tag">${c.rarity}</p>
+                </div>
+            `).join('');
+        }
+
+        handleLogin();
+    }, 2200);
+}
+
+/* --- GIFTING SYSTEM --- */
+async function fetchGiftUsersList() {
+    if (!currentSession.web_id) return;
+    const res = await fetch('/api/users_list', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentSession)
+    });
+    const data = await res.json();
+
+    const select = document.getElementById('gift-user-select');
+    if (data.success && data.users.length > 0) {
+        select.innerHTML = '<option value="">-- Choose Target User --</option>' +
+            data.users.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+    } else {
+        select.innerHTML = '<option value="">No other users found</option>';
+    }
+}
+
+function setGiftType(type) {
+    currentGiftType = type;
+    document.getElementById('type-btn-coins').classList[type === 'coins' ? 'add' : 'remove']('active');
+    document.getElementById('type-btn-card').classList[type === 'card' ? 'add' : 'remove']('active');
+
+    document.getElementById('gift-coins-sec').classList[type === 'coins' ? 'remove' : 'add']('hidden');
+    document.getElementById('gift-card-sec').classList[type === 'card' ? 'remove' : 'add']('hidden');
+}
+
+function populateGiftCardDropdown() {
+    const select = document.getElementById('gift-card-select');
+    if (!select) return;
+    if (userCards.length === 0) {
+        select.innerHTML = '<option value="">No cards available</option>';
+        return;
+    }
+    select.innerHTML = '<option value="">-- Select Card to Gift --</option>' + 
+        userCards.map(c => `<option value="${c.id}">${c.name} (${c.rarity}) - x${c.quantity} Owned</option>`).join('');
+}
+
+async function submitGift() {
+    if (!currentSession.web_id) return alert("Please login first!");
+
+    const target_id = document.getElementById('gift-user-select').value;
+    if (!target_id) return alert("Please select a target user!");
+
+    let payload = { ...currentSession, target_id, gift_type: currentGiftType };
+
+    if (currentGiftType === 'coins') {
+        const amount = document.getElementById('gift-coin-amount').value;
+        if (!amount || amount <= 0) return alert("Enter a valid coin amount!");
+        payload.amount = amount;
+    } else {
+        const card_id = document.getElementById('gift-card-select').value;
+        const qty = document.getElementById('gift-card-qty').value;
+        if (!card_id) return alert("Please select a card to gift!");
+        if (!qty || qty <= 0) return alert("Enter a valid card quantity!");
+        payload.card_id = card_id;
+        payload.qty = qty;
+    }
+
+    const res = await fetch('/api/gift', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.success) {
+        alert(data.message);
+        handleLogin();
+    } else alert(data.error);
 }
 
 function startTimers(lastDaily, lastBeg) {
@@ -266,8 +411,7 @@ async function doEconomy(action) {
     } else alert(data.error);
 }
 
-
-/* --- MARKET SYSTEM CONTROLLERS --- */
+/* --- FULL MARKET SYSTEM --- */
 function switchMarketTab(tab) {
     document.getElementById('tab-global-market').classList[tab === 'global' ? 'add' : 'remove']('active');
     document.getElementById('tab-my-market').classList[tab === 'mine' ? 'add' : 'remove']('active');
@@ -334,7 +478,7 @@ function renderMyMarket(myList) {
             <p class="m-rarity text-primary">${item.rarity}</p>
             <div class="m-price-row" style="margin-top: 10px;">
                 <span class="m-price">${item.price.toLocaleString()} 🪙</span>
-                <button class="btn-danger btn-sm" onclick="removeListing(${item.listing_id})">Remove Market</button>
+                <button class="btn-danger btn-sm" onclick="removeListing(${item.listing_id})">Remove</button>
             </div>
         </div>
     `).join('');
@@ -361,17 +505,21 @@ function filterMarket() {
 async function listCardOnMarket() {
     const card_id = document.getElementById('market-sell-select').value;
     const price = document.getElementById('market-sell-price').value;
+    const qty = document.getElementById('market-sell-qty').value;
+    
     if (!card_id) return alert("Please select a card to sell!");
     if (!price || price <= 0) return alert("Enter a valid price!");
+    if (!qty || qty <= 0) return alert("Enter a valid quantity!");
 
     const res = await fetch('/api/market/sell', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentSession, card_id, price })
+        body: JSON.stringify({ ...currentSession, card_id, price, qty })
     });
     const data = await res.json();
     if (data.success) {
         alert(data.message);
         document.getElementById('market-sell-price').value = "";
+        document.getElementById('market-sell-qty').value = "1";
         fetchMarket();
         fetchUserCards();
     } else alert(data.error);
@@ -405,4 +553,4 @@ async function removeListing(listing_id) {
         fetchMarket(); 
         fetchUserCards();
     } else alert(data.error);
-        }
+}
