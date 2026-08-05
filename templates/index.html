@@ -190,13 +190,60 @@
             </section>
 
             <section id="page-market" class="page-view">
-                <div class="panel">
-                    <div class="panel-header"><h3><i class="fa-solid fa-shop"></i> Global Market</h3></div>
-                    <div class="panel-body">
-                        <p class="text-muted">Global Market listings will appear here. Trading system active!</p>
+                
+                <div class="market-tabs">
+                    <button class="btn-toggle active" id="tab-global-market" onclick="switchMarketTab('global')">Global Market</button>
+                    <button class="btn-toggle" id="tab-my-market" onclick="switchMarketTab('mine')">Your Listings / Sell</button>
+                </div>
+
+                <div id="market-global-view">
+                    <div class="panel" style="margin-bottom: 20px;">
+                        <div class="panel-header"><h3><i class="fa-solid fa-filter"></i> Search & Filter</h3></div>
+                        <div class="panel-body market-filters">
+                            <input type="text" id="market-filter-name" placeholder="Card Name..." oninput="filterMarket()">
+                            <select id="market-filter-rarity" onchange="filterMarket()">
+                                <option value="">All Rarities</option>
+                                <option value="Common">Common</option>
+                                <option value="Uncommon">Uncommon</option>
+                                <option value="Rare">Rare</option>
+                                <option value="Epic">Epic</option>
+                                <option value="Legendary">Legendary</option>
+                                <option value="Super Legendary">Super Legendary</option>
+                            </select>
+                            <input type="text" id="market-filter-seller" placeholder="Seller Name..." oninput="filterMarket()">
+                            <input type="number" id="market-filter-min" placeholder="Min Price" oninput="filterMarket()">
+                            <input type="number" id="market-filter-max" placeholder="Max Price" oninput="filterMarket()">
+                        </div>
+                    </div>
+                    
+                    <div class="market-grid" id="global-market-grid">
+                        <p class="text-muted">Loading market listings...</p>
                     </div>
                 </div>
-            </section>
+
+                <div id="market-my-view" class="hidden">
+                    <div class="panel" style="margin-bottom: 25px; border-color: var(--primary);">
+                        <div class="panel-header" style="background: var(--primary-glow);"><h3><i class="fa-solid fa-tags"></i> List a Card for Sale</h3></div>
+                        <div class="panel-body" style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <select id="market-sell-select" class="gift-select" style="flex: 2; min-width: 200px;">
+                                <option value="">Loading your cards...</option>
+                            </select>
+                            <div class="input-group" style="flex: 1; margin: 0; min-width: 150px;">
+                                <i class="fa-solid fa-coins"></i>
+                                <input type="number" id="market-sell-price" min="1" placeholder="Selling Price">
+                            </div>
+                            <button class="btn-primary" onclick="listCardOnMarket()"><i class="fa-solid fa-plus"></i> List Item</button>
+                        </div>
+                    </div>
+
+                    <h3 class="section-title"><i class="fa-solid fa-shop"></i> Your Active Listings</h3>
+                    <div class="market-grid" id="my-market-grid">
+                        <p class="text-muted">Loading your listings...</p>
+                    </div>
+                </div>
+
+</section>
+            
 
             <section id="page-gift" class="page-view">
                 <div class="panel">
