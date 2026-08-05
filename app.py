@@ -28,7 +28,6 @@ def login_api():
     conn = get_db()
     cursor = conn.cursor()
     
-    # Updated query to fetch username and pfp
     cursor.execute("SELECT id, balance, last_beg, last_daily, username, pfp FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
     user = cursor.fetchone()
     if not user: 
@@ -36,11 +35,9 @@ def login_api():
         
     discord_id, balance, last_beg, last_daily, username, pfp = user
 
-    # Balance / Wealth Rank
     cursor.execute("SELECT COUNT(*) + 1 FROM users WHERE balance > ?", (balance,))
     balance_rank = cursor.fetchone()[0]
 
-    # Collection Rank Algorithm
     cursor.execute('''
         SELECT i.user_id, SUM(
             CASE c.rarity 
@@ -58,7 +55,6 @@ def login_api():
     leaderboard = cursor.fetchall()
     user_rank = next((index + 1 for index, row in enumerate(leaderboard) if row[0] == discord_id), "--")
 
-    # Rarity Counts
     cursor.execute("""
         SELECT c.rarity, COALESCE(SUM(i.quantity), 0) 
         FROM inventory i JOIN cards c ON i.card_id = c.card_id 
@@ -67,7 +63,6 @@ def login_api():
     rarity_counts = {row[0]: row[1] for row in cursor.fetchall()}
     total_cards = sum(rarity_counts.values())
 
-    # Highest Valued Card
     cursor.execute("""
         SELECT c.card_id, c.name, c.rarity, c.value, c.image, i.quantity 
         FROM inventory i JOIN cards c ON i.card_id = c.card_id 
@@ -94,9 +89,9 @@ def login_api():
             } if highest else None
         }
     })
-    
 
-# --- 2. LEADERBOARDS ---
+
+# --- 2. LEADERBOARDS (WITH USERNAMES) ---
 @app.route('/api/leaderboard', methods=['POST'])
 def leaderboard_api():
     data = request.json
@@ -105,12 +100,12 @@ def leaderboard_api():
     cursor = conn.cursor()
 
     if lb_type == 'balance':
-        cursor.execute("SELECT id, balance FROM users ORDER BY balance DESC LIMIT 20")
+        cursor.execute("SELECT id, username, balance FROM users ORDER BY balance DESC LIMIT 20")
         rows = cursor.fetchall()
-        leaderboard = [{"id": r[0], "value": r[1]} for r in rows]
+        leaderboard = [{"id": r[0], "username": r[1] or f"User {str(r[0])[-4:]}", "value": r[2]} for r in rows]
     else:
         cursor.execute('''
-            SELECT i.user_id, SUM(
+            SELECT u.id, u.username, SUM(
                 CASE c.rarity 
                     WHEN 'Common' THEN i.quantity*1 
                     WHEN 'Uncommon' THEN i.quantity*2 
@@ -120,13 +115,16 @@ def leaderboard_api():
                     WHEN 'Super Legendary' THEN i.quantity*10 
                     ELSE 0 END
             ) as points
-            FROM inventory i JOIN cards c ON i.card_id = c.card_id 
-            GROUP BY i.user_id ORDER BY points DESC LIMIT 20
+            FROM users u
+            JOIN inventory i ON u.id = i.user_id 
+            JOIN cards c ON i.card_id = c.card_id 
+            GROUP BY u.id, u.username ORDER BY points DESC LIMIT 20
         ''')
         rows = cursor.fetchall()
-        leaderboard = [{"id": r[0], "value": r[1] or 0} for r in rows]
+        leaderboard = [{"id": r[0], "username": r[1] or f"User {str(r[0])[-4:]}", "value": r[2] or 0} for r in rows]
 
     return jsonify({"success": True, "type": lb_type, "leaderboard": leaderboard})
+
 
 # --- 3. FETCH CARDS ---
 @app.route('/api/data', methods=['POST'])
@@ -146,10 +144,8 @@ def get_data():
     """, (discord_id,))
     cards = [{"id": r[0], "name": r[1], "rarity": r[2], "value": r[3], "image": r[4], "quantity": r[5]} for r in cursor.fetchall()]
 
-    cursor.execute("SELECT name, color, chance FROM rarities ORDER BY chance ASC")
-    rarities = [{"name": r[0], "color": r[1], "chance": r[2]} for r in cursor.fetchall()]
+    return jsonify({"success": True, "cards": cards})
 
-    return jsonify({"success": True, "cards": cards, "rarities": rarities})
 
 # --- 4. ECONOMY (DAILY & BEG) ---
 @app.route('/api/economy', methods=['POST'])
@@ -181,7 +177,8 @@ def economy_api():
     conn.commit()
     return jsonify({"success": True, "reward": amount, "new_balance": balance + amount})
 
-# --- 5. GACHA SUMMON ---
+
+# --- 5. GACHA SUMMON (1 to 20) ---
 @app.route('/api/gacha', methods=['POST'])
 def gacha_api():
     data = request.json
@@ -192,12 +189,18 @@ def gacha_api():
     if not user: return jsonify({"error": "Unauthorized"}), 401
 
     discord_id, balance = user
-    cost = 1000
-    count = int(data.get('count', 1))
-    total_cost = cost * count
+    cost_per_pull = 1000
+    try:
+        count = int(data.get('count', 1))
+    except (ValueError, TypeError):
+        count = 1
 
+    if count < 1 or count > 20:
+        return jsonify({"success": False, "error": "Summon count must be between 1 and 20!"})
+
+    total_cost = cost_per_pull * count
     if balance < total_cost:
-        return jsonify({"success": False, "error": f"Need {total_cost} coins!"})
+        return jsonify({"success": False, "error": f"Need {total_cost:,} coins!"})
 
     cursor.execute("SELECT name, chance FROM rarities")
     rarity_data = cursor.fetchall()
@@ -220,11 +223,12 @@ def gacha_api():
     conn.commit()
     return jsonify({"success": True, "pulls": pulls, "new_balance": balance - total_cost})
 
+
 # --- 6. BURN CARDS ---
 @app.route('/api/burn', methods=['POST'])
 def burn_api():
     data = request.json
-    items_to_burn = data.get('items', []) # [{'card_id': x, 'qty': y}]
+    items_to_burn = data.get('items', [])
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT id, balance FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
@@ -255,6 +259,87 @@ def burn_api():
     conn.commit()
     return jsonify({"success": True, "coins_gained": total_coins_gained, "new_balance": balance + total_coins_gained})
 
+
+# --- 7. USERS LIST FOR GIFTING ---
+@app.route('/api/users_list', methods=['POST'])
+def users_list_api():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    user = cursor.fetchone()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+
+    sender_id = user[0]
+    cursor.execute("SELECT id, username FROM users WHERE id != ?", (sender_id,))
+    users = [{"id": r[0], "username": r[1] or f"User {str(r[0])[-4:]}"} for r in cursor.fetchall()]
+    return jsonify({"success": True, "users": users})
+
+
+# --- 8. SEND GIFT ---
+@app.route('/api/gift', methods=['POST'])
+def gift_api():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, balance FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    sender = cursor.fetchone()
+    if not sender: return jsonify({"error": "Unauthorized"}), 401
+
+    sender_id, balance = sender
+    target_id = data.get('target_id')
+    gift_type = data.get('gift_type') # 'coins' or 'card'
+
+    cursor.execute("SELECT id, username FROM users WHERE id = ?", (target_id,))
+    target = cursor.fetchone()
+    if not target: return jsonify({"success": False, "error": "Recipient user not found!"})
+    target_name = target[1] or f"User {str(target_id)[-4:]}"
+
+    if gift_type == 'coins':
+        try:
+            amount = int(data.get('amount', 0))
+        except:
+            amount = 0
+        if amount <= 0: return jsonify({"success": False, "error": "Enter a valid coin amount!"})
+        if balance < amount: return jsonify({"success": False, "error": "Insufficient coins!"})
+
+        cursor.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (amount, sender_id))
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (amount, target_id))
+        conn.commit()
+        return jsonify({"success": True, "message": f"Successfully gifted {amount:,} coins to {target_name}!"})
+
+    elif gift_type == 'card':
+        card_id = data.get('card_id')
+        try:
+            qty = int(data.get('qty', 1))
+        except:
+            qty = 1
+        if qty <= 0: return jsonify({"success": False, "error": "Invalid card quantity!"})
+
+        cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND card_id = ?", (sender_id, card_id))
+        row = cursor.fetchone()
+        if not row or row[0] < qty:
+            return jsonify({"success": False, "error": "You don't own enough of this card!"})
+
+        # Subtract card from sender
+        if row[0] == qty:
+            cursor.execute("DELETE FROM inventory WHERE user_id = ? AND card_id = ?", (sender_id, card_id))
+        else:
+            cursor.execute("UPDATE inventory SET quantity = quantity - ? WHERE user_id = ? AND card_id = ?", (qty, sender_id, card_id))
+
+        # Add card to receiver
+        cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND card_id = ?", (target_id, card_id))
+        target_row = cursor.fetchone()
+        if target_row:
+            cursor.execute("UPDATE inventory SET quantity = quantity + ? WHERE user_id = ? AND card_id = ?", (qty, target_id, card_id))
+        else:
+            cursor.execute("INSERT INTO inventory (user_id, card_id, quantity) VALUES (?, ?, ?)", (target_id, card_id, qty))
+
+        conn.commit()
+        return jsonify({"success": True, "message": f"Successfully gifted {qty}x card(s) to {target_name}!"})
+
+    return jsonify({"success": False, "error": "Invalid gift type!"})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
-        
+    
