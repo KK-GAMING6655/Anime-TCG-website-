@@ -1,6 +1,5 @@
 let currentSession = { web_id: null, web_pass: null };
 let userCards = [];
-let globalMarketCards = [];
 let currentCardIndex = 0;
 let currentGiftType = 'coins';
 
@@ -27,14 +26,11 @@ function showPage(pageId, element) {
 
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 
-    if (pageId === 'cards' || pageId === 'burn' || pageId === 'gift' || pageId === 'market') {
+    if (pageId === 'cards' || pageId === 'burn' || pageId === 'gift') {
         fetchUserCards();
     }
     if (pageId === 'gift') {
         fetchGiftUsersList();
-    }
-    if (pageId === 'market') {
-        fetchMarket();
     }
 }
 
@@ -157,7 +153,6 @@ async function fetchUserCards() {
         renderCardSlider();
         renderBurnGrid();
         populateGiftCardDropdown();
-        populateSellDropdown(); // Also populate the Market dropdown!
     }
 }
 
@@ -186,7 +181,6 @@ function changeCard(dir) {
 
 function renderBurnGrid() {
     const grid = document.getElementById('burn-cards-grid');
-    if (!grid) return;
     if (userCards.length === 0) {
         grid.innerHTML = '<p class="text-muted">No cards available to burn.</p>';
         return;
@@ -251,6 +245,7 @@ async function pullGacha() {
     const featured = document.getElementById('gacha-featured-card');
     const bulkResults = document.getElementById('gacha-bulk-results');
 
+    // Reset Stage
     stage.classList.remove('hidden');
     suspense.classList.remove('hidden');
     featured.classList.add('hidden');
@@ -267,13 +262,16 @@ async function pullGacha() {
         return alert(data.error);
     }
 
+    // Sort pulls by value descending (highest value card is featured)
     const sortedPulls = [...data.pulls].sort((a, b) => b.value - a.value);
     const topPull = sortedPulls[0];
 
+    // EA Sports / eFootball Suspense Delay Animation (2.2 seconds)
     setTimeout(() => {
         suspense.classList.add('hidden');
         featured.classList.remove('hidden');
 
+        // Apply dynamic rarity glow color
         const cardBox = document.getElementById('summon-card-box');
         cardBox.className = `summon-card-box ${topPull.rarity.toLowerCase().replace(' ', '-')}`;
 
@@ -282,6 +280,7 @@ async function pullGacha() {
         document.getElementById('summon-name').innerText = topPull.name;
         document.getElementById('summon-val').innerText = `Value: ${topPull.value.toLocaleString()} 🪙`;
 
+        // Render bulk cards if more than 1 pulled
         if (data.pulls.length > 1) {
             bulkResults.classList.remove('hidden');
             const grid = document.getElementById('bulk-cards-grid');
@@ -294,7 +293,7 @@ async function pullGacha() {
             `).join('');
         }
 
-        handleLogin();
+        handleLogin(); // Refresh balance
     }, 2200);
 }
 
@@ -327,7 +326,6 @@ function setGiftType(type) {
 
 function populateGiftCardDropdown() {
     const select = document.getElementById('gift-card-select');
-    if (!select) return;
     if (userCards.length === 0) {
         select.innerHTML = '<option value="">No cards available</option>';
         return;
@@ -365,7 +363,7 @@ async function submitGift() {
 
     if (data.success) {
         alert(data.message);
-        handleLogin();
+        handleLogin(); // Refresh user balance & cards
     } else alert(data.error);
 }
 
@@ -409,148 +407,5 @@ async function doEconomy(action) {
         alert(`Claimed ${data.reward} coins!`);
         handleLogin();
     } else alert(data.error);
-}
-
-/* --- FULL MARKET SYSTEM --- */
-function switchMarketTab(tab) {
-    document.getElementById('tab-global-market').classList[tab === 'global' ? 'add' : 'remove']('active');
-    document.getElementById('tab-my-market').classList[tab === 'mine' ? 'add' : 'remove']('active');
-    document.getElementById('market-global-view').classList[tab === 'global' ? 'remove' : 'add']('hidden');
-    document.getElementById('market-my-view').classList[tab === 'mine' ? 'remove' : 'add']('hidden');
-}
-
-function populateSellDropdown() {
-    const select = document.getElementById('market-sell-select');
-    if (!select) return;
-    if (userCards.length === 0) {
-        select.innerHTML = '<option value="">No cards available to sell</option>';
-    } else {
-        select.innerHTML = '<option value="">-- Select Card to Sell --</option>' + 
-            userCards.map(c => `<option value="${c.id}">${c.name} (${c.rarity}) - x${c.quantity} Owned</option>`).join('');
-    }
-}
-
-async function fetchMarket() {
-    if (!currentSession.web_id) return;
-    const res = await fetch('/api/market', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(currentSession)
-    });
-    const data = await res.json();
-    if (data.success) {
-        globalMarketCards = data.global_market;
-        renderGlobalMarket(globalMarketCards);
-        renderMyMarket(data.my_market);
-        populateSellDropdown();
-    }
-}
-
-function renderGlobalMarket(marketList) {
-    const grid = document.getElementById('global-market-grid');
-    if (marketList.length === 0) {
-        grid.innerHTML = '<p class="text-muted">No market listings available.</p>';
-        return;
-    }
-    grid.innerHTML = marketList.map(item => `
-        <div class="market-card ${item.rarity.toLowerCase().replace(/\s+/g, '-')}">
-            <img src="${item.image}" alt="Card">
-            <h4 class="m-name">${item.name}</h4>
-            <p class="m-rarity text-primary">${item.rarity}</p>
-            <p class="m-seller"><i class="fa-solid fa-user"></i> ${item.seller_name}</p>
-            <div class="m-price-row">
-                <span class="m-price">${item.price.toLocaleString()} 🪙</span>
-                <button class="btn-primary btn-sm" onclick="buyCard(${item.listing_id}, ${item.price})">Buy</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function renderMyMarket(myList) {
-    const grid = document.getElementById('my-market-grid');
-    if (myList.length === 0) {
-        grid.innerHTML = '<p class="text-muted">You have no active listings.</p>';
-        return;
-    }
-    grid.innerHTML = myList.map(item => `
-        <div class="market-card ${item.rarity.toLowerCase().replace(/\s+/g, '-')}">
-            <img src="${item.image}" alt="Card">
-            <h4 class="m-name">${item.name}</h4>
-            <p class="m-rarity text-primary">${item.rarity}</p>
-            <div class="m-price-row" style="margin-top: 10px;">
-                <span class="m-price">${item.price.toLocaleString()} 🪙</span>
-                <button class="btn-danger btn-sm" onclick="removeListing(${item.listing_id})">Remove</button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function filterMarket() {
-    const nameFilter = document.getElementById('market-filter-name').value.toLowerCase();
-    const rarityFilter = document.getElementById('market-filter-rarity').value;
-    const sellerFilter = document.getElementById('market-filter-seller').value.toLowerCase();
-    const minPrice = parseInt(document.getElementById('market-filter-min').value) || 0;
-    const maxPrice = parseInt(document.getElementById('market-filter-max').value) || Infinity;
-
-    const filtered = globalMarketCards.filter(c => {
-        const matchName = c.name.toLowerCase().includes(nameFilter);
-        const matchRarity = rarityFilter === "" || c.rarity === rarityFilter;
-        const matchSeller = c.seller_name.toLowerCase().includes(sellerFilter);
-        const matchPrice = c.price >= minPrice && c.price <= maxPrice;
-        return matchName && matchRarity && matchSeller && matchPrice;
-    });
-    
-    renderGlobalMarket(filtered);
-}
-
-async function listCardOnMarket() {
-    const card_id = document.getElementById('market-sell-select').value;
-    const price = document.getElementById('market-sell-price').value;
-    const qty = document.getElementById('market-sell-qty').value;
-    
-    if (!card_id) return alert("Please select a card to sell!");
-    if (!price || price <= 0) return alert("Enter a valid price!");
-    if (!qty || qty <= 0) return alert("Enter a valid quantity!");
-
-    const res = await fetch('/api/market/sell', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentSession, card_id, price, qty })
-    });
-    const data = await res.json();
-    if (data.success) {
-        alert(data.message);
-        document.getElementById('market-sell-price').value = "";
-        document.getElementById('market-sell-qty').value = "1";
-        fetchMarket();
-        fetchUserCards();
-    } else alert(data.error);
-}
-
-async function buyCard(listing_id, price) {
-    if (!confirm(`Are you sure you want to buy this card for ${price.toLocaleString()} coins?`)) return;
-    
-    const res = await fetch('/api/market/buy', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentSession, listing_id })
-    });
-    const data = await res.json();
-    if (data.success) {
-        alert(data.message);
-        handleLogin();
-        fetchMarket();
-    } else alert(data.error);
-}
-
-async function removeListing(listing_id) {
-    if (!confirm(`Remove this card from the market and return it to your inventory?`)) return;
-
-    const res = await fetch('/api/market/remove', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...currentSession, listing_id })
-    });
-    const data = await res.json();
-    if (data.success) {
-        alert(data.message);
-        fetchMarket(); 
-        fetchUserCards();
-    } else alert(data.error);
-}
+            }
+                            
