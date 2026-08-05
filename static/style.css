@@ -154,45 +154,10 @@ body { background-color: var(--bg-main); color: var(--text-light); overflow-x: h
 .btn-toggle { flex: 1; padding: 10px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
 .btn-toggle.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-
-/* --- MARKET SYSTEM STYLES --- */
-.market-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-.market-filters { display: flex; gap: 12px; flex-wrap: wrap; }
-.market-filters input, .market-filters select { 
-    background: var(--bg-main); 
-    border: 1px solid var(--border-color); 
-    color: white; 
-    padding: 10px 12px; 
-    border-radius: 8px; 
-    flex: 1; 
-    min-width: 130px; 
-}
-
-.market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-top: 15px; }
-.market-card { background: var(--bg-panel); border: 2px solid var(--border-color); border-radius: 12px; padding: 15px; text-align: center; transition: 0.2s; }
-.market-card:hover { transform: translateY(-4px); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-.market-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
-.market-card .m-name { font-size: 1rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.market-card .m-rarity { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
-.market-card .m-seller { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; }
-.market-card .m-price-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg-main); padding: 8px 12px; border-radius: 8px; }
-.market-card .m-price { font-weight: 700; color: #fbbf24; }
-.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-
-/* Apply rarity colors to Market borders */
-.market-card.common { border-color: #a1a1aa; }
-.market-card.uncommon { border-color: #22c55e; }
-.market-card.rare { border-color: #3b82f6; }
-.market-card.epic { border-color: #a855f7; }
-.market-card.legendary { border-color: #eab308; }
-.market-card.super-legendary { border-color: #ef4444; }
-
-
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); }
     .main-content { margin-left: 0; }
     .mobile-toggle { display: block; }
     .topbar-right .btn-header { display: none; }
-                }
-         
+                  }
