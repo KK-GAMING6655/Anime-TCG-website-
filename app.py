@@ -340,6 +340,155 @@ def gift_api():
 
     return jsonify({"success": False, "error": "Invalid gift type!"})
 
+# --- 9. MARKET SYSTEM ---
+# Ensure market table exists
+with get_db() as conn:
+    conn.cursor().execute('''
+        CREATE TABLE IF NOT EXISTS market (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+            seller_id TEXT, 
+            card_id TEXT, 
+            price INTEGER
+        )
+    ''')
+
+@app.route('/api/market', methods=['POST'])
+def fetch_market():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    user = cursor.fetchone()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    discord_id = user[0]
+
+    # Fetch all market listings joined with card and user info
+    cursor.execute('''
+        SELECT m.id, m.price, m.seller_id, u.username, c.card_id, c.name, c.rarity, c.image, c.value 
+        FROM market m 
+        JOIN cards c ON m.card_id = c.card_id 
+        LEFT JOIN users u ON m.seller_id = u.id
+    ''')
+    
+    global_market = []
+    my_market = []
+    
+    for row in cursor.fetchall():
+        listing = {
+            "listing_id": row[0], "price": row[1], "seller_id": row[2], 
+            "seller_name": row[3] or f"User {str(row[2])[-4:]}", 
+            "card_id": row[4], "name": row[5], "rarity": row[6], "image": row[7], "base_value": row[8]
+        }
+        if row[2] == discord_id:
+            my_market.append(listing)
+        else:
+            global_market.append(listing)
+
+    return jsonify({"success": True, "global_market": global_market, "my_market": my_market})
+
+
+@app.route('/api/market/sell', methods=['POST'])
+def market_sell():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    user = cursor.fetchone()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    
+    discord_id = user[0]
+    card_id = data.get('card_id')
+    price = int(data.get('price', 0))
+    
+    if price <= 0: return jsonify({"success": False, "error": "Price must be greater than 0!"})
+    
+    # Check if user has the card
+    cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND card_id = ?", (discord_id, card_id))
+    inv = cursor.fetchone()
+    if not inv or inv[0] < 1: return jsonify({"success": False, "error": "You don't own this card!"})
+    
+    # Remove 1 card from inventory and put on market
+    if inv[0] == 1:
+        cursor.execute("DELETE FROM inventory WHERE user_id = ? AND card_id = ?", (discord_id, card_id))
+    else:
+        cursor.execute("UPDATE inventory SET quantity = quantity - 1 WHERE user_id = ? AND card_id = ?", (discord_id, card_id))
+        
+    cursor.execute("INSERT INTO market (seller_id, card_id, price) VALUES (?, ?, ?)", (discord_id, card_id, price))
+    conn.commit()
+    return jsonify({"success": True, "message": "Card successfully listed on the market!"})
+
+
+@app.route('/api/market/remove', methods=['POST'])
+def market_remove():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    user = cursor.fetchone()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    discord_id = user[0]
+    listing_id = data.get('listing_id')
+
+    # Verify ownership of listing
+    cursor.execute("SELECT card_id FROM market WHERE id = ? AND seller_id = ?", (listing_id, discord_id))
+    listing = cursor.fetchone()
+    if not listing: return jsonify({"success": False, "error": "Listing not found or you don't own it!"})
+    
+    card_id = listing[0]
+    
+    # Delete listing and return card
+    cursor.execute("DELETE FROM market WHERE id = ?", (listing_id,))
+    cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND card_id = ?", (discord_id, card_id))
+    inv = cursor.fetchone()
+    if inv:
+        cursor.execute("UPDATE inventory SET quantity = quantity + 1 WHERE user_id = ? AND card_id = ?", (discord_id, card_id))
+    else:
+        cursor.execute("INSERT INTO inventory (user_id, card_id, quantity) VALUES (?, ?, 1)", (discord_id, card_id))
+        
+    conn.commit()
+    return jsonify({"success": True, "message": "Card removed from market and returned to your inventory."})
+
+
+@app.route('/api/market/buy', methods=['POST'])
+def market_buy():
+    data = request.json
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, balance FROM users WHERE web_id = ? AND web_password = ?", (data.get('web_id'), data.get('web_pass')))
+    buyer = cursor.fetchone()
+    if not buyer: return jsonify({"error": "Unauthorized"}), 401
+    
+    buyer_id, buyer_balance = buyer
+    listing_id = data.get('listing_id')
+
+    cursor.execute("SELECT seller_id, card_id, price FROM market WHERE id = ?", (listing_id,))
+    listing = cursor.fetchone()
+    if not listing: return jsonify({"success": False, "error": "This listing no longer exists!"})
+    
+    seller_id, card_id, price = listing
+    if buyer_id == seller_id: return jsonify({"success": False, "error": "You cannot buy your own listing!"})
+    if buyer_balance < price: return jsonify({"success": False, "error": "Insufficient coins to buy this card!"})
+
+    # Execute Trade: Transfer Coins
+    cursor.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (price, buyer_id))
+    cursor.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (price, seller_id))
+
+    # Execute Trade: Transfer Card to Buyer
+    cursor.execute("SELECT quantity FROM inventory WHERE user_id = ? AND card_id = ?", (buyer_id, card_id))
+    buyer_inv = cursor.fetchone()
+    if buyer_inv:
+        cursor.execute("UPDATE inventory SET quantity = quantity + 1 WHERE user_id = ? AND card_id = ?", (buyer_id, card_id))
+    else:
+        cursor.execute("INSERT INTO inventory (user_id, card_id, quantity) VALUES (?, ?, 1)", (buyer_id, card_id))
+
+    # Remove from market
+    cursor.execute("DELETE FROM market WHERE id = ?", (listing_id,))
+    conn.commit()
+    
+    return jsonify({"success": True, "message": "Successfully purchased card!"})
+    
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
     
