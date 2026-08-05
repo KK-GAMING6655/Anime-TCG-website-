@@ -30,7 +30,7 @@
             </div>
             <div class="panel-body">
                 <table class="lb-table">
-                    <thead><tr><th>Rank</th><th>User</th><th id="lb-header-val">Value</th></tr></thead>
+                    <thead><tr><th>Rank</th><th>User ID</th><th id="lb-header-val">Value</th></tr></thead>
                     <tbody id="lb-table-body"></tbody>
                 </table>
             </div>
@@ -67,7 +67,6 @@
                     <a href="https://discord.gg/" target="_blank" class="btn-header btn-join"><i class="fa-brands fa-discord"></i> Join Server</a>
                     <a href="https://discord.com/api/oauth2/authorize" target="_blank" class="btn-header btn-add"><i class="fa-solid fa-plus"></i> Add Bot</a>
                     <button id="login-btn" class="btn-primary" onclick="toggleLoginModal(true)"><i class="fa-solid fa-right-to-bracket"></i> LOGIN</button>
-                    <button id="logout-btn" class="btn-danger hidden" onclick="handleLogout()"><i class="fa-solid fa-right-from-bracket"></i> LOGOUT</button>
                 </div>
             </header>
 
@@ -152,37 +151,15 @@
                 <div class="panel text-center">
                     <div class="panel-header"><h3><i class="fa-solid fa-box-open"></i> Summon Altar</h3></div>
                     <div class="panel-body">
-                        <div class="gacha-controls-box">
-                            <label>Summon Quantity (1 - 20):</label>
-                            <div class="gacha-input-row">
-                                <input type="number" id="gacha-count-input" min="1" max="20" value="1" oninput="updateGachaCost()">
-                                <button onclick="pullGacha()" class="btn-primary" id="gacha-summon-btn">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Summon (<span id="gacha-total-cost">1,000</span> 🪙)
-                                </button>
-                            </div>
+                        <div class="gacha-controls">
+                            <button onclick="pullGacha(1)" class="btn-primary">Pull x1 (1,000 🪙)</button>
+                            <button onclick="pullGacha(10)" class="btn-secondary">Pull x10 (10,000 🪙)</button>
                         </div>
-
                         <div id="gacha-stage" class="gacha-stage hidden">
-                            <div id="gacha-suspense" class="gacha-suspense hidden">
-                                <div class="suspense-ring"></div>
-                                <h2 class="suspense-text">ANALYZING SIGNAL...</h2>
-                            </div>
-
-                            <div id="gacha-featured-card" class="featured-card-container hidden">
-                                <span class="featured-badge">✨ TOP PULL OF THE PACK ✨</span>
-                                <div class="summon-card-box" id="summon-card-box">
-                                    <h3 id="summon-rarity">---</h3>
-                                    <img id="summon-img" src="" alt="Featured Card">
-                                    <h4 id="summon-name">---</h4>
-                                    <p id="summon-val" class="text-muted"></p>
-                                </div>
-                            </div>
-
-                            <div id="gacha-bulk-results" class="gacha-bulk-results hidden">
-                                <h3 class="section-title text-center" style="justify-content: center; margin-top: 25px;">
-                                    <i class="fa-solid fa-layer-group"></i> All Pulled Cards
-                                </h3>
-                                <div class="bulk-cards-grid" id="bulk-cards-grid"></div>
+                            <div class="summon-card-box">
+                                <h3 id="summon-rarity" class="gradient-text">SUMMONING...</h3>
+                                <img id="summon-img" src="" alt="Card">
+                                <h4 id="summon-name">---</h4>
                             </div>
                         </div>
                     </div>
@@ -190,7 +167,6 @@
             </section>
 
             <section id="page-market" class="page-view">
-                
                 <div class="market-tabs">
                     <button class="btn-toggle active" id="tab-global-market" onclick="switchMarketTab('global')">Global Market</button>
                     <button class="btn-toggle" id="tab-my-market" onclick="switchMarketTab('mine')">Your Listings / Sell</button>
@@ -224,15 +200,15 @@
                 <div id="market-my-view" class="hidden">
                     <div class="panel" style="margin-bottom: 25px; border-color: var(--primary);">
                         <div class="panel-header" style="background: var(--primary-glow);"><h3><i class="fa-solid fa-tags"></i> List a Card for Sale</h3></div>
-                        <div class="panel-body" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                            <select id="market-sell-select" class="gift-select" style="flex: 2; min-width: 200px;">
+                        <div class="panel-body" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                            <select id="market-sell-select" class="input-group" style="flex: 2; min-width: 200px; padding: 12px; background: var(--bg-main); color: white; border-radius: 8px; border: 1px solid var(--border-color);">
                                 <option value="">Loading your cards...</option>
                             </select>
                             <div class="input-group" style="flex: 1; margin: 0; min-width: 150px;">
                                 <i class="fa-solid fa-coins"></i>
                                 <input type="number" id="market-sell-price" min="1" placeholder="Selling Price">
                             </div>
-                            <button class="btn-primary" onclick="listCardOnMarket()"><i class="fa-solid fa-plus"></i> List Item</button>
+                            <button class="btn-primary" onclick="listCardOnMarket()"><i class="fa-solid fa-plus"></i> Sell Card</button>
                         </div>
                     </div>
 
@@ -241,51 +217,15 @@
                         <p class="text-muted">Loading your listings...</p>
                     </div>
                 </div>
-
-</section>
-            
+            </section>
 
             <section id="page-gift" class="page-view">
                 <div class="panel">
-                    <div class="panel-header"><h3><i class="fa-solid fa-gift"></i> Send Gift</h3></div>
-                    <div class="panel-body" style="max-width: 500px; margin: 0 auto;">
-                        
-                        <div class="gift-form-group">
-                            <label><i class="fa-solid fa-user"></i> Select Recipient:</label>
-                            <select id="gift-user-select" class="gift-select">
-                                <option value="">Loading Users...</option>
-                            </select>
-                        </div>
-
-                        <div class="gift-form-group">
-                            <label><i class="fa-solid fa-boxes-packing"></i> Gift Type:</label>
-                            <div class="gift-type-toggle">
-                                <button type="button" class="btn-toggle active" id="type-btn-coins" onclick="setGiftType('coins')">Coins 🪙</button>
-                                <button type="button" class="btn-toggle" id="type-btn-card" onclick="setGiftType('card')">Card 🃏</button>
-                            </div>
-                        </div>
-
-                        <div id="gift-coins-sec" class="gift-form-group">
-                            <label><i class="fa-solid fa-coins"></i> Amount of Coins:</label>
-                            <div class="input-group">
-                                <input type="number" id="gift-coin-amount" min="1" placeholder="Enter amount (e.g., 500)">
-                            </div>
-                        </div>
-
-                        <div id="gift-card-sec" class="gift-form-group hidden">
-                            <label><i class="fa-solid fa-image"></i> Select Owned Card:</label>
-                            <select id="gift-card-select" class="gift-select">
-                                <option value="">Select a card...</option>
-                            </select>
-                            <div class="input-group" style="margin-top: 10px;">
-                                <i class="fa-solid fa-layer-group"></i>
-                                <input type="number" id="gift-card-qty" min="1" value="1" placeholder="Quantity">
-                            </div>
-                        </div>
-
-                        <button class="btn-primary full-width" onclick="submitGift()" style="margin-top: 15px;">
-                            <i class="fa-solid fa-paper-plane"></i> Send Gift
-                        </button>
+                    <div class="panel-header"><h3><i class="fa-solid fa-gift"></i> Send Gifts</h3></div>
+                    <div class="panel-body" style="max-width: 500px;">
+                        <div class="input-group"><i class="fa-solid fa-user"></i><input type="text" id="gift-user" placeholder="Recipient Discord ID"></div>
+                        <div class="input-group"><i class="fa-solid fa-coins"></i><input type="number" id="gift-amount" placeholder="Coin Amount"></div>
+                        <button class="btn-primary full-width" onclick="alert('Gift sent!')">Send Gift</button>
                     </div>
                 </div>
             </section>
@@ -307,5 +247,5 @@
 
     <script src="/static/app.js"></script>
 </body>
-                    </html>
-                                                 
+                                                                                                                                                             </html>
+                    
