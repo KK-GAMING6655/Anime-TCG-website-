@@ -342,15 +342,18 @@ def gift_api():
 
 # --- 9. MARKET SYSTEM ---
 # Ensure market table exists
-with get_db() as conn:
-    conn.cursor().execute('''
-        CREATE TABLE IF NOT EXISTS market (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, 
-            seller_id TEXT, 
-            card_id TEXT, 
-            price INTEGER
-        )
-    ''')
+conn = get_db()
+conn.cursor().execute('''
+    CREATE TABLE IF NOT EXISTS market (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        seller_id TEXT, 
+        card_id TEXT, 
+        price INTEGER
+    )
+''')
+conn.commit()
+
+
 
 @app.route('/api/market', methods=['POST'])
 def fetch_market():
